@@ -40,7 +40,13 @@ const els = new Map();
 const document = {
   getElementById: (id) => { if (!els.has(id)) els.set(id, new FakeEl()); return els.get(id); },
   createElement: (t) => new FakeEl(t),
-  querySelectorAll: () => []
+  querySelectorAll: () => [],
+  /* '.score-box' のようなクラス指定を、その名前の擬似要素として返す */
+  querySelector: (sel) => {
+    const k = 'sel:' + sel;
+    if (!els.has(k)) els.set(k, new FakeEl());
+    return els.get(k);
+  }
 };
 
 const ctx = vm.createContext({
@@ -251,6 +257,35 @@ for (const [color, p] of Object.entries(GI)) {
 }
 check('ゲート同士の足が重なっていない', new Set(initFeet).size === initFeet.length, initFeet.join(','));
 check('パックマンの初期位置がゲートの足と重なっていない', !initFeet.includes(nm(PI.c, PI.r)));
+
+/* ---------- 10. 獲得ポイント（競技規約 5.17.3 / 6.4） ---------- */
+console.log('\n[10] 獲得ポイント');
+const S = ctx.rallyScore;
+const sc = (arr) => { const r = S(arr); return `${r.points}/${r.max} (${r.laps}周回)`; };
+
+eq('未通過は0点', sc([]), '0/15 (0周回)');
+eq('赤青黄で1周回=5点', sc(['red', 'blue', 'yellow']), '5/15 (1周回)');
+eq('2周回=10点', sc(['red', 'blue', 'yellow', 'red', 'blue', 'yellow']), '10/15 (2周回)');
+eq('3周回=15点', sc(['red', 'blue', 'yellow', 'red', 'blue', 'yellow', 'red', 'blue', 'yellow']), '15/15 (3周回)');
+eq('4周回でも上限の15点', sc(Array(4).fill(['red', 'blue', 'yellow']).flat()), '15/15 (4周回)');
+
+/* 同色の連続通過は1回と見なす（規約 5.17.3） */
+eq('同色の連続通過は1回扱い', sc(['red', 'red', 'red', 'blue', 'blue', 'yellow']), '5/15 (1周回)');
+
+/* 順番を外れたら1番目からやり直し */
+eq('順番違い(赤黄青)は成立しない', sc(['red', 'yellow', 'blue']), '0/15 (0周回)');
+eq('やり直して成立する', sc(['red', 'yellow', 'red', 'blue', 'yellow']), '5/15 (1周回)');
+eq('青から始まっても赤から数え直す', sc(['blue', 'yellow', 'red', 'blue', 'yellow']), '5/15 (1周回)');
+eq('途中で崩れた後に成立', sc(['red', 'blue', 'red', 'blue', 'yellow']), '5/15 (1周回)');
+eq('成立後の余分な通過は加点しない', sc(['red', 'blue', 'yellow', 'blue']), '5/15 (1周回)');
+
+/* サンプル走行（既定の初期配置）で最大ポイントに達すること */
+const sampleRoute = R(p1.cmds, ctx.__PACKMAN_INIT, ctx.__GATE_INIT);
+const samplePasses = sampleRoute.actions.filter((a) => a.pass).map((a) => a.pass);
+eq('サンプル走行の通過ゲート', samplePasses.join(''),
+  'redblueyellowredblueyellowredblueyellow');
+eq('サンプル走行は満点', sc(samplePasses), '15/15 (3周回)');
+check('サンプル走行はコース外・衝突で止まらない', !sampleRoute.stop, JSON.stringify(sampleRoute.stop));
 
 /* ---------- 結果 ---------- */
 console.log(`\n===== ${pass} passed, ${fail} failed =====`);

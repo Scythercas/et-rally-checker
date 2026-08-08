@@ -44,6 +44,15 @@ const DIR_DELTA = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 const MOVE_MS = 380;                   // 1マス移動の基準時間
 const TURN_MS = 280;                   // 90度回転の基準時間
 
+/* 競技規約 5.17.3「ゲート通過」より、1周回として成立するゲートの通過順序(表5-3) */
+const RALLY_ORDER = ['red', 'blue', 'yellow'];
+
+/* 競技規約 6.4「【B】課題ポイント」表6-2 より、ETラリーの課題ポイント。
+ * 1周回=5, 2周回=10, 3周回=15 で「いずれかが成立」= 最も多い周回のみが加点される。 */
+const RALLY_POINTS = [0, 5, 10, 15];
+const RALLY_MAX_LAPS = RALLY_POINTS.length - 1;
+const RALLY_MAX_POINTS = RALLY_POINTS[RALLY_MAX_LAPS];
+
 const SAMPLE_INSTRUCTIONS = [
   '左', '直進4', '右', '直進5', '右', '直進4', '右', '直進3', '右', '直進2',
   '左', '直進2', '右', '直進2', '右', '直進5', '右', '直進4', '右', '直進3',
@@ -67,6 +76,7 @@ const state = {
   snapshot: null,                      // 実行直前の状態(初期化で復元する)
   route: null,                         // 算出済みルート
   cookies: new Map(),                  // "c,r" -> 残りクッキー数
+  passes: [],                          // 通過したゲートの色を順に保持する
   timer: null,
   stepIndex: 0
 };
@@ -394,6 +404,34 @@ function computeRoute(cmds, start, gates) {
   return { actions, cookies, stop, end: cur };
 }
 
+/* ---------------------------------------------------------------
+ * 獲得ポイントの算出（競技規約 5.17.3 / 6.4）
+ * ------------------------------------------------------------- */
+
+/* 通過したゲートの並びから、周回数と課題ポイントを求める。
+ * - 同色の連続通過は1回と見なす
+ * - 赤→青→黄 の順に通過して1周回が成立する
+ * - 順番を外れた場合は1番目からやり直しとなる
+ * - 成立した周回数は累積する */
+function rallyScore(passes) {
+  const seq = passes.filter((c, i) => i === 0 || c !== passes[i - 1]);
+  let laps = 0;
+  let step = 0;                                       // 次に通過すべき順番(0=赤)
+  for (const color of seq) {
+    if (color === RALLY_ORDER[step]) {
+      step++;
+      if (step === RALLY_ORDER.length) { laps++; step = 0; }
+    } else {
+      step = (color === RALLY_ORDER[0]) ? 1 : 0;      // 1番目からやり直す
+    }
+  }
+  return {
+    laps,
+    points: RALLY_POINTS[Math.min(laps, RALLY_MAX_LAPS)],
+    max: RALLY_MAX_POINTS
+  };
+}
+
 function stopMessage(stop) {
   const where = `${stop.cmd.lineNo}行目「${stop.cmd.text}」の${stop.done + 1}マス目`;
   if (stop.kind === 'edge') {
@@ -434,6 +472,8 @@ function setMessage(text, cls = '') {
 
 function clearGateLog() {
   $('gate-log').innerHTML = '<li class="empty">まだ通過していません</li>';
+  state.passes = [];
+  renderScore();
 }
 
 function logGatePass(color) {
@@ -444,6 +484,17 @@ function logGatePass(color) {
   li.className = 'g-' + color;
   li.textContent = GATE_DEF[color].name;             // 色だけを表示する（赤・黄・青）
   ol.appendChild(li);
+  state.passes.push(color);
+  renderScore();
+}
+
+/* 「現在のポイント / 最大ポイント」の形式で表示する */
+function renderScore() {
+  const s = rallyScore(state.passes);
+  $('score-now').textContent = s.points;
+  $('score-max').textContent = s.max;
+  $('score-laps').textContent = `${s.laps}周回`;
+  document.querySelector('.score-box').classList.toggle('full', s.points >= s.max);
 }
 
 function startSimulation() {
@@ -811,6 +862,7 @@ function init() {
   $('speed-label').textContent = state.speed.toFixed(2) + ' 倍';
   wire();
   renderAll();
+  renderScore();
   setPhase('idle');
   setMessage('');
 }

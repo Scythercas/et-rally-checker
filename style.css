@@ -269,6 +269,42 @@ textarea:disabled { background: #f2f4f6; color: var(--muted); }
 .message.warn { color: var(--warn); }
 .message.err { color: var(--err); }
 
+/* 獲得ポイント（現在 / 最大の分数表示） */
+.score-box {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  background: #f2f7fd;
+  border: 1px solid #cddff2;
+  border-radius: 6px;
+}
+.score-label { font-size: .82rem; color: var(--muted); }
+.score-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .01em;
+}
+.score-value b { font-size: 1.5rem; }
+.score-unit { font-size: .82rem; color: var(--muted); }
+.score-laps {
+  margin-left: auto;
+  font-size: .82rem;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #cddff2;
+  border-radius: 999px;
+  padding: 1px 10px;
+}
+/* 最大ポイントに到達したら緑で示す */
+.score-box.full { background: #f0f9f4; border-color: #b7ddc6; }
+.score-box.full .score-value { color: var(--ok); }
+.score-box.full .score-laps { border-color: #b7ddc6; }
+
 /* 通過ゲートはコース下に横並びで表示する */
 .gate-log {
   list-style: none;
