@@ -42,10 +42,15 @@
   <!-- ================= 操作パネル ================= -->
   <aside class="panel">
 
-    <!-- スクロールしても動かない実行ボタン -->
+    <!-- スクロールしても動かない実行速度と実行ボタン -->
     <div class="panel-actions">
+      <div class="speed-row">
+        <label for="speed">実行速度</label>
+        <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1">
+        <output id="speed-label">1.00 倍</output>
+      </div>
       <button type="button" id="btn-start" class="btn btn-primary">シミュレーションを開始</button>
-      <div class="row">
+      <div class="btn-row">
         <button type="button" id="btn-replay" class="btn" disabled>初めから再実行</button>
         <button type="button" id="btn-reset" class="btn" disabled>シミュレーションを初期化</button>
       </div>
@@ -88,14 +93,6 @@
         <div class="row">
           <button type="button" id="btn-sample" class="btn">サンプルを読み込む</button>
           <button type="button" id="btn-clear" class="btn">クリア</button>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>実行速度</h2>
-        <div class="row speed-row">
-          <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1">
-          <output id="speed-label">1.00 倍</output>
         </div>
       </section>
 

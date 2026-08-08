@@ -184,7 +184,7 @@ body {
   padding: 12px 14px;
 }
 /* ボタン名を折り返さずに収めるため縦に並べる */
-.panel-actions .row { margin: 0; flex-direction: column; gap: 8px; }
+.panel-actions .btn-row { display: flex; flex-direction: column; gap: 8px; }
 .panel-actions .btn { width: 100%; white-space: nowrap; }
 
 /* ここだけがスクロールする */
@@ -252,8 +252,16 @@ textarea {
 }
 textarea:disabled { background: #f2f4f6; color: var(--muted); }
 
-.speed-row { align-items: center; }
-.speed-row input[type=range] { flex: 1 1 auto; }
+/* 実行速度は実行ボタンの上に固定で置く */
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.speed-row label { font-size: .85rem; font-weight: 600; white-space: nowrap; }
+.speed-row input[type=range] { flex: 1 1 auto; min-width: 0; }
 .speed-row output { font-size: .82rem; min-width: 5.2em; text-align: right; font-variant-numeric: tabular-nums; }
 
 .message { margin: 2px 0 8px; font-size: .85rem; min-height: 1.6em; white-space: pre-wrap; }
