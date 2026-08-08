@@ -442,7 +442,7 @@ function logGatePass(color) {
   if (empty) empty.remove();
   const li = document.createElement('li');
   li.className = 'g-' + color;
-  li.textContent = `${GATE_DEF[color].name}のゲート`;
+  li.textContent = GATE_DEF[color].name;             // 色だけを表示する（赤・黄・青）
   ol.appendChild(li);
 }
 
