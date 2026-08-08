@@ -230,7 +230,7 @@ function buildPackman() {
   layerPackman.innerHTML = '';
   packmanEl = document.createElement('div');
   packmanEl.id = 'packman';
-  packmanEl.innerHTML = '<img src="images/Packman.png" alt="パックマン" draggable="false">';
+  packmanEl.innerHTML = '<img src="images/Packman.png" alt="走行体" draggable="false">';
   layerPackman.appendChild(packmanEl);
   packmanEl.addEventListener('pointerdown', startDragPackman);
 }
@@ -685,7 +685,7 @@ function ensurePackmanNotOnFoot() {
       if (inBounds(c, r) && !feet.has(key(c, r))) {
         state.packman.c = c; state.packman.r = r;
         renderPackman();
-        setMessage('ゲートの足と重なるため、パックマンを移動しました。', 'warn');
+        setMessage('ゲートの足と重なるため、走行体を移動しました。', 'warn');
         return;
       }
     }
