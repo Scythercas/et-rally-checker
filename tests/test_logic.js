@@ -20,8 +20,19 @@ class FakeEl {
   setPointerCapture() {} releasePointerCapture() {}
   appendChild(c) { this.children.push(c); return c; }
   remove() {}
-  querySelector() { return null; }
-  querySelectorAll() { return []; }
+  set innerHTML(v) { this._html = v; if (v === '') this.children = []; }
+  get innerHTML() { return this._html || ''; }
+  set className(v) { this._cls = new Set(String(v).split(/\s+/).filter(Boolean)); }
+  get className() { return [...this._cls].join(' '); }
+  /* 子孫のうちクラス名が一致するものを返す（'.slot' のような単純セレクタのみ対応） */
+  querySelectorAll(sel) {
+    const cls = String(sel).replace(/^\./, '');
+    const out = [];
+    const walk = (n) => n.children.forEach((c) => { if (c._cls.has(cls)) out.push(c); walk(c); });
+    walk(this);
+    return out;
+  }
+  querySelector(sel) { return this.querySelectorAll(sel)[0] || null; }
   getBoundingClientRect() { return { left: 0, top: 0, width: 550, height: 550 }; }
 }
 
@@ -41,6 +52,13 @@ const ctx = vm.createContext({
 const src = fs.readFileSync(path.join(PROJ, 'script.js'), 'utf8');
 vm.runInContext(src, ctx, { filename: 'script.js' });
 
+/* script.js の const はグローバルオブジェクトに載らないので、同じコンテキストで取り出す */
+vm.runInContext(
+  'globalThis.__state = state;' +
+  'globalThis.__GATE_INIT = GATE_INIT;' +
+  'globalThis.__PACKMAN_INIT = PACKMAN_INIT;' +
+  'globalThis.__DIR_LABEL = DIR_LABEL;', ctx);
+
 /* ---------- テスト基盤 ---------- */
 let pass = 0, fail = 0;
 function check(name, cond, extra = '') {
@@ -53,9 +71,12 @@ function eq(name, actual, expected) {
 }
 
 const G = ctx.parseInstructions, R = ctx.computeRoute;
+/* ルート算出のテストは既定値の変更に影響されないよう、固定の配置を使う */
 const GATE_INIT = { red: { c: 1, r: 1 }, yellow: { c: 1, r: 3 }, blue: { c: 1, r: 5 } };
 const COL = 'ABCDEFGHIJK';
 const nm = (c, r) => COL[c] + (r + 1);
+const span = (color, p) => nm(p.c, p.r) + '-' +
+  (color === 'blue' ? nm(p.c, p.r + 2) : nm(p.c + 2, p.r));
 
 /* ---------- 1. 走行指示の解析 ---------- */
 console.log('\n[1] 走行指示の解析');
@@ -164,6 +185,72 @@ for (const a of r1.actions) {
   if ((((ang - A(dir)) % 360) + 360) % 360 !== 0) { drift = { ang, dir }; break; }
 }
 check('サンプル全体で累積角度と向きがずれない', drift === null, JSON.stringify(drift));
+
+/* ---------- 8. ゲートの足のハイライト ---------- */
+console.log('\n[8] ゲートの足のハイライト');
+const cells = els.get('layer-cells');
+const slotState = () => {
+  const m = {};
+  for (const s of cells.querySelectorAll('.slot')) {
+    const tags = ['active', 'invalid', 'taken'].filter((t) => s._cls.has(t));
+    if (tags.length) m[s.dataset.pos] = tags.join('+');
+  }
+  return m;
+};
+/* "c,r" キーをマス名にし、キー順に依存しない形へ正規化する */
+const posName = (o) => Object.entries(o)
+  .map(([k, v]) => { const [c, r] = k.split(',').map(Number); return nm(c, r) + '=' + v; })
+  .sort().join(' ');
+
+/* 既定値に左右されないよう、ハイライトの検証も固定の配置で行う */
+ctx.__state.gates = JSON.parse(JSON.stringify(GATE_INIT));
+
+ctx.showSlots('blue');
+eq('足の候補は偶数座標の25箇所', cells.querySelectorAll('.slot').length, 25);
+eq('他ゲート(赤・黄)の足4箇所がtaken', posName(slotState()),
+  'B2=taken B4=taken D2=taken D4=taken');
+
+/* 配置可能な位置(H8)へ動かすと、その2つの足が active になる */
+ctx.showSlots('blue');
+ctx.highlightSlot('blue', { c: 7, r: 7 });
+eq('H8へ配置可: H8とH10の両足がactive', posName(slotState()),
+  'B2=taken B4=taken D2=taken D4=taken H10=active H8=active');
+
+/* 黄ゲートの足(D4)と重なる位置へ動かすと、2つの足が invalid になる */
+ctx.showSlots('blue');
+ctx.highlightSlot('blue', { c: 3, r: 3 });
+eq('D4へ配置不可: D4とD6の両足がinvalid', posName(slotState()),
+  'B2=taken B4=taken D2=taken D4=invalid+taken D6=invalid');
+
+/* 横向きゲートは左右の足が2列離れる */
+ctx.showSlots('red');
+ctx.highlightSlot('red', { c: 5, r: 5 });
+eq('赤をF6へ: F6とH6の両足がactive', posName(slotState()),
+  'B4=taken B6=taken B8=taken D4=taken F6=active H6=active');
+
+/* 掴んでいるゲート自身の足は taken にしない（自分自身とは重ならない） */
+ctx.showSlots('blue');
+check('自分の足(B6,B8)はtakenにならない', !slotState()['1,5'] && !slotState()['1,7']);
+
+/* ---------- 9. 既定の初期配置 ---------- */
+console.log('\n[9] 既定の初期配置');
+const PI = ctx.__PACKMAN_INIT, GI = ctx.__GATE_INIT;
+eq('パックマンの初期位置はI1', nm(PI.c, PI.r), 'I1');
+eq('パックマンの初期向きは左', ctx.__DIR_LABEL[PI.dir], '左');
+eq('赤の初期位置はH4-J4', span('red', GI.red), 'H4-J4');
+eq('黄の初期位置はF2-H2', span('yellow', GI.yellow), 'F2-H2');
+eq('青の初期位置はF4-F6', span('blue', GI.blue), 'F4-F6');
+
+/* 初期配置そのものが仕様どおり成立していること */
+for (const [color, p] of Object.entries(GI)) {
+  check(`${color}の初期位置は偶数座標かつコース内`, ctx.isValidGatePos(color, p.c, p.r));
+}
+const initFeet = [];
+for (const [color, p] of Object.entries(GI)) {
+  initFeet.push(nm(p.c, p.r), color === 'blue' ? nm(p.c, p.r + 2) : nm(p.c + 2, p.r));
+}
+check('ゲート同士の足が重なっていない', new Set(initFeet).size === initFeet.length, initFeet.join(','));
+check('パックマンの初期位置がゲートの足と重なっていない', !initFeet.includes(nm(PI.c, PI.r)));
 
 /* ---------- 結果 ---------- */
 console.log(`\n===== ${pass} passed, ${fail} failed =====`);

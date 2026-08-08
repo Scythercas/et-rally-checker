@@ -31,11 +31,11 @@ const GATE_DEF = {
   blue:   { name: '青', img: 'images/GateBlue.png',   w: 107, h: 245, axis: 'v', f1: [8.5,  31.5],  span: 188.5 }
 };
 
-/* 初期位置(足のうち左/上側)。赤=B2, 黄=B4, 青=B6 */
-const GATE_INIT = { red: { c: 1, r: 1 }, yellow: { c: 1, r: 3 }, blue: { c: 1, r: 5 } };
+/* 初期位置(足のうち左/上側)。赤=H4-J4, 黄=F2-H2, 青=F4-F6 */
+const GATE_INIT = { red: { c: 7, r: 3 }, yellow: { c: 5, r: 1 }, blue: { c: 5, r: 3 } };
 
-/* パックマンの初期状態: A9 を右向き */
-const PACKMAN_INIT = { c: 0, r: 8, dir: 1 };
+/* パックマンの初期状態: I1 を左向き */
+const PACKMAN_INIT = { c: 8, r: 0, dir: 3 };
 
 /* 方位: 0=上, 1=右, 2=下, 3=左 (Packman.png は右向きが基準) */
 const DIR_LABEL = ['上', '右', '下', '左'];
@@ -563,14 +563,18 @@ function stageFraction(ev) {
   };
 }
 
+/* 足を置ける位置（偶数座標のグレーの丸）をすべて表示する。
+ * 他のゲートの足が既にある位置は「使用中」として区別する。 */
 function showSlots(color) {
   layerCells.innerHTML = '';
   const size = CELL * 0.42;
+  const taken = footMap();
   for (let c = 0; c < COLS; c++) {
     for (let r = 0; r < ROWS; r++) {
-      if (!isValidGatePos(color, c, r)) continue;
+      if (c % 2 !== 1 || r % 2 !== 1) continue;      // 0基点なので奇数インデックス=偶数座標
       const el = document.createElement('div');
       el.className = 'slot';
+      if (taken.get(key(c, r)) && taken.get(key(c, r)) !== color) el.classList.add('taken');
       el.dataset.pos = key(c, r);
       el.style.width = size + '%';
       el.style.height = size + '%';
@@ -581,9 +585,19 @@ function showSlots(color) {
   }
 }
 
-function highlightSlot(c, r) {
+/* いまドロップした場合に足が乗る2箇所を強調する。
+ * 配置可否の判定に使うのは「2つの足」なので、その両方を同じ状態で示す。 */
+function highlightSlot(color, pos) {
+  const placeable = !!pos && gateFits(color, pos);
+  const feet = [];
+  if (pos) {
+    const f2 = gateFoot2(color, pos);
+    feet.push(key(pos.c, pos.r), key(f2.c, f2.r));
+  }
   layerCells.querySelectorAll('.slot').forEach((el) => {
-    el.classList.toggle('active', el.dataset.pos === key(c, r));
+    const isFoot = feet.includes(el.dataset.pos);
+    el.classList.toggle('active', isFoot && placeable);
+    el.classList.toggle('invalid', isFoot && !placeable);
   });
 }
 
@@ -625,19 +639,19 @@ function startDragGate(ev, color) {
   const grabDy = start.y - centerY(p.r);
 
   el.classList.add('dragging');
-  el.setPointerCapture(ev.pointerId);
+  try { el.setPointerCapture(ev.pointerId); } catch (_) { /* 捕捉できなくてもドラッグは継続する */ }
   showSlots(color);
+  highlightSlot(color, p);                            // 掴んだ時点の足を強調しておく
 
   const onMove = (e) => {
     const f = stageFraction(e);
     const ax = f.x - grabDx, ay = f.y - grabDy;
     placeGateAt(color, ax, ay);
-    const near = nearestGatePos(color, ax, ay);
-    if (near) highlightSlot(near.c, near.r);
+    highlightSlot(color, nearestGatePos(color, ax, ay));
   };
 
   const onUp = (e) => {
-    el.releasePointerCapture(ev.pointerId);
+    try { el.releasePointerCapture(ev.pointerId); } catch (_) { /* 未捕捉なら何もしない */ }
     el.removeEventListener('pointermove', onMove);
     el.removeEventListener('pointerup', onUp);
     el.removeEventListener('pointercancel', onUp);
@@ -688,7 +702,7 @@ function startDragPackman(ev) {
   let moved = false;
 
   packmanEl.classList.add('dragging');
-  packmanEl.setPointerCapture(ev.pointerId);
+  try { packmanEl.setPointerCapture(ev.pointerId); } catch (_) { /* 捕捉できなくてもドラッグは継続する */ }
 
   const onMove = (e) => {
     const f = stageFraction(e);
@@ -697,7 +711,7 @@ function startDragPackman(ev) {
   };
 
   const onUp = (e) => {
-    packmanEl.releasePointerCapture(ev.pointerId);
+    try { packmanEl.releasePointerCapture(ev.pointerId); } catch (_) { /* 未捕捉なら何もしない */ }
     packmanEl.removeEventListener('pointermove', onMove);
     packmanEl.removeEventListener('pointerup', onUp);
     packmanEl.removeEventListener('pointercancel', onUp);
