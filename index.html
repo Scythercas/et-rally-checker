@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ETロボコン2026 ETRally 走行シミュレータ</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="app-header">
+  <h1>ETロボコン2026 ETRally 走行シミュレータ</h1>
+  <p class="phase">状態: <span id="phase-label">シミュレーション開始前</span></p>
+</header>
+
+<main class="layout">
+
+  <!-- ================= コース ================= -->
+  <section class="stage-area">
+    <div id="stage">
+      <img id="course-img" alt="コース">
+      <div id="grid-box">
+        <div id="layer-cookies" class="layer"></div>
+        <div id="layer-packman" class="layer"></div>
+        <div id="layer-gates" class="layer"></div>
+        <div id="layer-cells" class="layer"></div>
+      </div>
+    </div>
+    <p class="hint" id="stage-hint">
+      ゲートとパックマンはドラッグで移動できます。パックマンをクリックすると右に90度回転します。
+    </p>
+  </section>
+
+  <!-- ================= 操作パネル ================= -->
+  <aside class="panel">
+
+    <section class="card" data-phase-lock="pre">
+      <h2>コース</h2>
+      <div class="row">
+        <button type="button" id="btn-course" class="btn">コースを切り替え（現在: <b id="course-label">L</b>）</button>
+      </div>
+      <label class="check"><input type="checkbox" id="chk-coord" checked> 座標を表示する</label>
+      <label class="check"><input type="checkbox" id="chk-cookie" checked> クッキーを表示する</label>
+    </section>
+
+    <section class="card" data-phase-lock="pre">
+      <h2>パックマン</h2>
+      <p class="readout">位置 <b id="pac-pos">A9</b> ／ 向き <b id="pac-dir">右</b></p>
+      <div class="row">
+        <button type="button" id="btn-turn-left" class="btn">左に回す</button>
+        <button type="button" id="btn-turn-right" class="btn">右に回す</button>
+      </div>
+    </section>
+
+    <section class="card" data-phase-lock="pre">
+      <h2>ゲート</h2>
+      <p class="readout"><span class="chip chip-red"></span>赤 <b id="gate-red-pos">B2-D2</b></p>
+      <p class="readout"><span class="chip chip-yellow"></span>黄 <b id="gate-yellow-pos">B4-D4</b></p>
+      <p class="readout"><span class="chip chip-blue"></span>青 <b id="gate-blue-pos">B6-B8</b></p>
+      <div class="row">
+        <button type="button" id="btn-gate-init" class="btn">ゲートを初期位置に戻す</button>
+      </div>
+    </section>
+
+    <section class="card" data-phase-lock="pre">
+      <h2>走行指示</h2>
+      <textarea id="instructions" rows="9" spellcheck="false"></textarea>
+      <div class="row">
+        <button type="button" id="btn-sample" class="btn">サンプルを読み込む</button>
+        <button type="button" id="btn-clear" class="btn">クリア</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>実行速度</h2>
+      <div class="row speed-row">
+        <input type="range" id="speed" min="0.25" max="4" step="0.25" value="1">
+        <output id="speed-label">1.00 倍</output>
+      </div>
+    </section>
+
+    <section class="card actions">
+      <button type="button" id="btn-start" class="btn btn-primary">シミュレーションを開始</button>
+      <button type="button" id="btn-replay" class="btn" disabled>初めから再実行</button>
+      <button type="button" id="btn-reset" class="btn" disabled>シミュレーションを初期化</button>
+    </section>
+
+    <section class="card">
+      <h2>結果</h2>
+      <p id="message" class="message"></p>
+      <p class="readout">通過したゲート:</p>
+      <ol id="gate-log" class="gate-log"><li class="empty">まだ通過していません</li></ol>
+    </section>
+
+  </aside>
+</main>
+
+<script src="script.js"></script>
+</body>
+</html>

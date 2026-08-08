@@ -1,0 +1,203 @@
+/* ETRally 走行シミュレータ - スタイル */
+
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --ink: #1c2733;
+  --muted: #61707f;
+  --line: #d8dee5;
+  --accent: #1668c1;
+  --ok: #17794a;
+  --warn: #a8480a;
+  --err: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.app-header {
+  padding: 14px 22px 10px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.app-header h1 { margin: 0; font-size: 1.15rem; }
+.app-header .phase { margin: 2px 0 0; font-size: .85rem; color: var(--muted); }
+#phase-label { color: var(--accent); }
+
+.layout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 20px;
+}
+
+/* ---------- ステージ ---------- */
+.stage-area { flex: 1 1 520px; min-width: 320px; }
+
+#stage {
+  position: relative;
+  width: 100%;
+  max-width: 620px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  touch-action: none;
+  user-select: none;
+}
+
+#course-img {
+  position: absolute;
+  pointer-events: none;
+  image-rendering: auto;
+}
+
+/* 11x11 のマス目が占める領域。オブジェクトはすべてこの中に％で配置する。 */
+#grid-box { position: absolute; }
+
+.layer { position: absolute; inset: 0; }
+#layer-cells { pointer-events: none; }
+
+.hint {
+  max-width: 620px;
+  margin: 8px auto 0;
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+/* パックマン */
+#packman {
+  position: absolute;
+  cursor: grab;
+  transition: left .25s linear, top .25s linear, transform .25s ease-in-out;
+  z-index: 2;
+}
+#packman.dragging { cursor: grabbing; transition: none; z-index: 9; }
+#packman img { width: 100%; height: 100%; display: block; pointer-events: none; }
+
+/* ゲート */
+.gate {
+  position: absolute;
+  cursor: grab;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
+}
+.gate.dragging { cursor: grabbing; opacity: .85; z-index: 9; }
+.gate img { width: 100%; height: 100%; display: block; pointer-events: none; }
+.locked .gate, .locked #packman { cursor: default; }
+
+/* クッキー */
+.cookie {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.cookie img { width: 100%; height: 100%; display: block; }
+.cookie .count {
+  position: absolute;
+  top: -70%;
+  right: -70%;
+  font-size: .58rem;
+  font-weight: 700;
+  color: #7a5a00;
+  background: #fff5cc;
+  border: 1px solid #e2c96b;
+  border-radius: 999px;
+  padding: 0 3px;
+  line-height: 1.35;
+}
+
+/* 配置可能位置のガイド（ドラッグ中のみ） */
+.slot {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(22, 104, 193, .28);
+  outline: 2px solid rgba(22, 104, 193, .55);
+  pointer-events: none;
+}
+.slot.active { background: rgba(23, 121, 74, .45); outline-color: #17794a; }
+
+/* ---------- パネル ---------- */
+.panel { flex: 0 1 340px; min-width: 300px; display: flex; flex-direction: column; gap: 12px; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.card h2 { margin: 0 0 8px; font-size: .92rem; letter-spacing: .02em; }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 2px; }
+
+.btn {
+  font: inherit;
+  font-size: .85rem;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfd;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { background: #eef3f8; border-color: #b9c5d1; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn-primary:hover:not(:disabled) { background: #12539b; border-color: #12539b; }
+
+.check { display: block; font-size: .85rem; margin: 4px 0; cursor: pointer; }
+.check input { margin-right: 6px; }
+
+.readout { margin: 3px 0; font-size: .85rem; color: var(--muted); }
+.readout b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.chip {
+  display: inline-block;
+  width: .7em; height: .7em;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+.chip-red { background: #ed1c24; }
+.chip-yellow { background: #ffd400; }
+.chip-blue { background: #1668c1; }
+
+textarea {
+  width: 100%;
+  font-family: "Consolas", "Yu Gothic UI", monospace;
+  font-size: .85rem;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  resize: vertical;
+}
+textarea:disabled { background: #f2f4f6; color: var(--muted); }
+
+.speed-row { align-items: center; }
+.speed-row input[type=range] { flex: 1 1 auto; }
+.speed-row output { font-size: .82rem; min-width: 5.2em; text-align: right; font-variant-numeric: tabular-nums; }
+
+.actions { display: flex; flex-direction: column; gap: 8px; }
+
+.message { margin: 2px 0 8px; font-size: .85rem; min-height: 1.6em; white-space: pre-wrap; }
+.message.ok { color: var(--ok); }
+.message.warn { color: var(--warn); }
+.message.err { color: var(--err); }
+
+.gate-log { margin: 4px 0 0; padding-left: 1.4em; font-size: .85rem; }
+.gate-log li { margin: 2px 0; }
+.gate-log .empty { list-style: none; margin-left: -1.4em; color: var(--muted); }
+.gate-log .g-red { color: #c1121a; }
+.gate-log .g-yellow { color: #8a7000; }
+.gate-log .g-blue { color: #1668c1; }
