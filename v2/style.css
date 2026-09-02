@@ -1,0 +1,347 @@
+/* ETラリー 走行シミュレータ - スタイル */
+
+:root {
+  --bg: #f4f6f8;
+  --card: #ffffff;
+  --ink: #1c2733;
+  --muted: #61707f;
+  --line: #d8dee5;
+  --accent: #1668c1;
+  --ok: #17794a;
+  --warn: #a8480a;
+  --err: #b3261e;
+}
+
+* { box-sizing: border-box; }
+
+/* 画面全体を縦に分割し、スクロールするのは右の設定欄（と必要ならコース欄）だけにする。
+   ヘッダー・コース・実行ボタンは設定欄をスクロールしても動かない。 */
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: "Segoe UI", "Yu Gothic UI", "Hiragino Sans", Meiryo, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+}
+
+.app-header {
+  flex: none;
+  padding: 12px 22px 9px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+.app-header h1 { margin: 0; font-size: 1.12rem; }
+.app-header .phase { margin: 2px 0 0; font-size: .85rem; color: var(--muted); }
+#phase-label { color: var(--accent); }
+
+.layout {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  gap: 20px;
+  padding: 16px 20px;
+  overflow: hidden;
+}
+
+/* ---------- コースと結果（左） ---------- */
+.stage-area {
+  /* コース・説明・結果を同じ幅に揃える。画面が低いときはコースを縮めて結果まで収める。 */
+  --stage-w: clamp(300px, calc(100vh - 340px), 600px);
+  flex: 1 1 560px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+#stage, .hint, .results {
+  width: var(--stage-w);
+  max-width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+#stage {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  touch-action: none;
+  user-select: none;
+}
+
+#course-img {
+  position: absolute;
+  pointer-events: none;
+}
+
+/* 11x11 のマス目が占める領域。オブジェクトはすべてこの中に％で配置する。 */
+#grid-box { position: absolute; }
+
+.layer { position: absolute; inset: 0; }
+#layer-cells { pointer-events: none; }
+
+.hint {
+  margin-top: 8px;
+  font-size: .8rem;
+  color: var(--muted);
+}
+
+.results { margin-top: 10px; }
+
+/* パックマン */
+#packman {
+  position: absolute;
+  cursor: grab;
+  transition: left .25s linear, top .25s linear, transform .25s ease-in-out;
+  z-index: 2;
+}
+#packman.dragging { cursor: grabbing; transition: none; z-index: 9; }
+#packman img { width: 100%; height: 100%; display: block; pointer-events: none; }
+
+/* ゲート */
+.gate {
+  position: absolute;
+  cursor: grab;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.25));
+}
+.gate.dragging { cursor: grabbing; opacity: .85; z-index: 9; }
+.gate img { width: 100%; height: 100%; display: block; pointer-events: none; }
+.locked .gate, .locked #packman { cursor: default; }
+
+/* クッキー */
+.cookie {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+.cookie img { width: 100%; height: 100%; display: block; }
+.cookie .count {
+  position: absolute;
+  top: -70%;
+  right: -70%;
+  font-size: .58rem;
+  font-weight: 700;
+  color: #7a5a00;
+  background: #fff5cc;
+  border: 1px solid #e2c96b;
+  border-radius: 999px;
+  padding: 0 3px;
+  line-height: 1.35;
+}
+
+/* ゲートの足を置ける位置（ドラッグ中のみ表示）。
+   配置可否の判定に使う「2つの足」を、その色で強調する。 */
+.slot {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(22, 104, 193, .16);
+  outline: 2px solid rgba(22, 104, 193, .38);
+  transition: background .08s linear, outline-color .08s linear;
+}
+/* 他のゲートの足が既に置かれている位置 */
+.slot.taken {
+  background: rgba(110, 122, 134, .26);
+  outline-color: rgba(110, 122, 134, .55);
+}
+/* 今ドロップした場合に足が乗る位置（配置可能） */
+.slot.active {
+  background: rgba(23, 121, 74, .55);
+  outline: 3px solid var(--ok);
+}
+/* 今ドロップした場合に足が乗る位置（他のゲートと重なるため配置不可） */
+.slot.invalid {
+  background: rgba(179, 38, 30, .5);
+  outline: 3px solid var(--err);
+}
+
+/* ---------- 操作パネル（右） ---------- */
+.panel {
+  flex: 0 0 336px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 12px;
+}
+
+/* スクロールしても動かない実行ボタン群 */
+.panel-actions {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+/* ボタン名を折り返さずに収めるため縦に並べる */
+.panel-actions .btn-row { display: flex; flex-direction: column; gap: 8px; }
+.panel-actions .btn { width: 100%; white-space: nowrap; }
+
+/* ここだけがスクロールする */
+.panel-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.card h2 { margin: 0 0 8px; font-size: .92rem; letter-spacing: .02em; }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0 2px; }
+
+.btn {
+  font: inherit;
+  font-size: .85rem;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fbfcfd;
+  color: var(--ink);
+  cursor: pointer;
+}
+.btn:hover:not(:disabled) { background: #eef3f8; border-color: #b9c5d1; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; padding: 9px 12px; }
+.btn-primary:hover:not(:disabled) { background: #12539b; border-color: #12539b; }
+
+.check { display: block; font-size: .85rem; margin: 4px 0; cursor: pointer; }
+.check input { margin-right: 6px; }
+
+.readout { margin: 3px 0; font-size: .85rem; color: var(--muted); }
+.readout b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+.chip {
+  display: inline-block;
+  width: .7em; height: .7em;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: baseline;
+}
+.chip-red { background: #ed1c24; }
+.chip-yellow { background: #ffd400; }
+.chip-blue { background: #1668c1; }
+
+textarea {
+  width: 100%;
+  font-family: "Consolas", "Yu Gothic UI", monospace;
+  font-size: .85rem;
+  line-height: 1.5;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  resize: vertical;
+}
+textarea:disabled { background: #f2f4f6; color: var(--muted); }
+
+/* 実行速度は実行ボタンの上に固定で置く */
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.speed-row label { font-size: .85rem; font-weight: 600; white-space: nowrap; }
+.speed-row input[type=range] { flex: 1 1 auto; min-width: 0; }
+.speed-row output { font-size: .82rem; min-width: 5.2em; text-align: right; font-variant-numeric: tabular-nums; }
+
+.message { margin: 2px 0 8px; font-size: .85rem; min-height: 1.6em; white-space: pre-wrap; }
+.message.ok { color: var(--ok); }
+.message.warn { color: var(--warn); }
+.message.err { color: var(--err); }
+
+/* 獲得ポイント（現在 / 最大の分数表示） */
+.score-box {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 4px 0 12px;
+  padding: 8px 12px;
+  background: #f2f7fd;
+  border: 1px solid #cddff2;
+  border-radius: 6px;
+}
+.score-label { font-size: .82rem; color: var(--muted); }
+.score-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: .01em;
+}
+.score-value b { font-size: 1.5rem; }
+.score-unit { font-size: .82rem; color: var(--muted); }
+.score-laps {
+  margin-left: auto;
+  font-size: .82rem;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #cddff2;
+  border-radius: 999px;
+  padding: 1px 10px;
+}
+/* 最大ポイントに到達したら緑で示す */
+.score-box.full { background: #f0f9f4; border-color: #b7ddc6; }
+.score-box.full .score-value { color: var(--ok); }
+.score-box.full .score-laps { border-color: #b7ddc6; }
+
+/* 通過ゲートはコース下に横並びで表示する */
+.gate-log {
+  list-style: none;
+  counter-reset: gl;
+  margin: 4px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.gate-log li {
+  counter-increment: gl;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: .8rem;
+  padding: 2px 10px;
+  border: 1px solid;
+  border-radius: 999px;
+}
+.gate-log li::before {
+  content: counter(gl) ".";
+  opacity: .6;
+  font-variant-numeric: tabular-nums;
+}
+.gate-log .g-red { color: #c1121a; border-color: #f0b6b8; background: #fdf1f1; }
+.gate-log .g-yellow { color: #8a7000; border-color: #e6d48a; background: #fdfaeb; }
+.gate-log .g-blue { color: #1668c1; border-color: #b3cdea; background: #f0f5fc; }
+.gate-log .empty { border: none; background: none; color: var(--muted); padding-left: 0; }
+.gate-log .empty::before { content: none; }
+
+/* ---------- 画面が狭い場合は通常の縦積みに戻す ---------- */
+@media (max-width: 900px) {
+  html, body { height: auto; }
+  body { overflow: auto; }
+  .layout { flex-wrap: wrap; overflow: visible; }
+  .stage-area { --stage-w: 600px; flex: 1 1 100%; overflow: visible; }
+  .panel { flex: 1 1 100%; }
+  .panel-scroll { overflow: visible; }
+}
